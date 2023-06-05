@@ -1,33 +1,46 @@
 const walk = require('walkdir');
-const {spawnSync} = require('node:child_process');
 const fs = require('fs');
 const path = require('path');
 const Jimp = require("jimp");
 
 const tileFile = (src, target) => {
-    const buffer = Buffer.alloc(32 * 32 *4);
-    new Jimp({ data: buffer, width: 32, height: 32 }, (err, image) => {
-        if (err) console.error(err);
-        
-        Jimp.read(src, (err, texture) => {
-            if (err) throw err;
-        
+    Jimp.read(src, (err, texture) => {
+        if (err) throw err;
+
+        let srcWidth = texture.bitmap.width;
+        let srcHeight = texture.bitmap.height;
+        let targetWidth = srcWidth * 2;
+        let targetHeight = srcHeight * 2;
+        if (srcWidth !== srcHeight) {
+            console.log(src, 'is not square', srcWidth, srcHeight);
+        }
+
+        const buffer = Buffer.alloc(targetWidth * targetHeight * 4);
+    
+        new Jimp({ data: buffer, width: targetWidth, height: targetHeight }, (err, image) => {
+            if (err) console.error(err);
+            
             const d = texture.bitmap.data;
-            for (let x = 0; x < 16 * 2; x++) {
-                for (let y = 0; y < 16; y++) {
-                    image.setPixelColor(texture.getPixelColor(x % 16, y), x, y);
+            for (let x = 0; x < targetWidth; x++) {
+                for (let y = 0; y < srcHeight; y++) {
+                    image.setPixelColor(texture.getPixelColor(x % srcWidth, y), x, y);
                 }   
             }
-            for (let x = 0; x < 16 * 2; x++) {
-                for (let y = 0; y < 16; y++) {
-                    image.setPixelColor(texture.getPixelColor(x % 16, y), x, 16 + y);
+            for (let x = 0; x < targetWidth; x++) {
+                for (let y = 0; y < srcHeight; y++) {
+                    image.setPixelColor(texture.getPixelColor(x % srcWidth, y), x, srcHeight + y);
                 }   
             }
 
-            image.write(target);
-        });    
-    });
+        
+            image.write(target);    
+        });
+    });    
+
 }
+
+// Just GUI
+// const target = (src) => src.replace(/\/images\/gui\//, '/tiled-images/');
 
 const target = (src) => src.replace(/\/images\//, '/tiled-images/');
 
